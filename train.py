@@ -132,19 +132,26 @@ def augment_data(train_ds, val_ds):
             # keras_cv.layers.RandomShear(
             #     x_factor=0.2, y_factor=0.2, bounding_box_format=bbxf
             # ),
-            keras_cv.layers.JitteredResize(
-                target_size=(640, 640),
-                scale_factor=(0.75, 1.3),
+            # keras_cv.layers.JitteredResize(
+            #     target_size=(640, 640),
+            #     scale_factor=(0.75, 1.3),
+            #     bounding_box_format=bbxf,
+            # ),
+            keras_cv.layers.Resizing(
+                width=640,
+                height=640,
                 bounding_box_format=bbxf,
-            ),
+                pad_to_aspect_ratio=True,
+            )
         ]
     )
 
     train_ds = train_ds.map(augmenters, num_parallel_calls=tf.data.AUTOTUNE)
-    resizing = keras_cv.layers.JitteredResize(
-        target_size=(640, 640),
-        scale_factor=(0.75, 1.3),
+    resizing = keras_cv.layers.Resizing(
+        width=640,
+        height=640,
         bounding_box_format=bbxf,
+        pad_to_aspect_ratio=True,
     )
     val_ds = val_ds.map(resizing, num_parallel_calls=tf.data.AUTOTUNE)
 
@@ -183,11 +190,9 @@ def train(
 
     train_ds = train_data.map(load_dataset, num_parallel_calls=tf.data.AUTOTUNE)
     train_ds = train_ds.shuffle(batch_size * 4)
-    train_ds = train_ds.take(128)
     train_ds = train_ds.ragged_batch(batch_size, drop_remainder=True)
     val_ds = val_data.map(load_dataset, num_parallel_calls=tf.data.AUTOTUNE)
     val_ds = val_ds.shuffle(batch_size * 4)
-    val_ds = val_ds.take(128)
     val_ds = val_ds.ragged_batch(batch_size, drop_remainder=True)
 
     train_ds, val_ds = augment_data(train_ds, val_ds)
