@@ -1,7 +1,9 @@
 import os
+from re import T
 import tensorflow as tf
 from tensorflow import keras
 import keras_cv
+from keras_cv import bounding_box
 import datetime
 from tqdm.auto import tqdm
 import xml.etree.ElementTree as ET
@@ -29,10 +31,13 @@ def load_dataset(image_path, classes, bbox):
     return {"images": tf.cast(image, tf.float32), "bounding_boxes": bounding_boxes}
 
 
-# Convert dict to tuple
+# # Convert dict to tuple
+# def dict_to_tuple(inputs):
+#     return inputs["images"], inputs["bounding_boxes"]
 def dict_to_tuple(inputs):
-    return inputs["images"], inputs["bounding_boxes"]
-
+    return inputs["images"], bounding_box.to_dense(
+        inputs["bounding_boxes"], max_boxes=32
+    )
 
 # Parse XML trees of dataset
 def parse_annotation(xml_file, class_mapping):
@@ -190,9 +195,11 @@ def train(
 
     train_ds = train_data.map(load_dataset, num_parallel_calls=tf.data.AUTOTUNE)
     train_ds = train_ds.shuffle(batch_size * 4)
+    train_ds = train_ds.take(128)
     train_ds = train_ds.ragged_batch(batch_size, drop_remainder=True)
     val_ds = val_data.map(load_dataset, num_parallel_calls=tf.data.AUTOTUNE)
     val_ds = val_ds.shuffle(batch_size * 4)
+    val_ds = val_ds.take(128)
     val_ds = val_ds.ragged_batch(batch_size, drop_remainder=True)
 
     train_ds, val_ds = augment_data(train_ds, val_ds)
@@ -245,7 +252,11 @@ def train(
         monitor="val_loss", factor=0.1, patience=5, verbose=1, min_lr=1e-7
     )
 
-    callbacks = [callback, csvlogger, modelcheckpoint, reducelronplateau]
+    pycoco = keras_cv.callbacks.PyCOCOCallback(
+        val_ds.take(128), bounding_box_format=bbxf
+    )
+
+    callbacks = [callback, csvlogger, modelcheckpoint, reducelronplateau, pycoco]
 
     if weights is not None:
         print("Loading weights: " + weights)
