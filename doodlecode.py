@@ -41,7 +41,7 @@ class DoodleCode:
         else:
             self.class_mapping = class_mapping
 
-        self.model = load_model(model_loc=model_loc)
+        self.model = model_loc
 
     def predict(
         self,
@@ -52,10 +52,11 @@ class DoodleCode:
         output=True,
         rescale=False,
     ):
+        model = load_model(model_loc=self.model)
         image, dimens = load_image(image_path)
         pred, bboxes, labels, labels_encoded = get_predictions(
             image,
-            self.model,
+            model,
             confidence,
             iou,
             self.class_mapping,
