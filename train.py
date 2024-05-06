@@ -24,10 +24,7 @@ def load_image(image_path):
 def load_dataset(image_path, classes, bbox):
     # Read Image
     image = load_image(image_path)
-    bounding_boxes = {
-        "classes": tf.cast(classes, dtype=tf.float32),
-        "boxes": bbox,
-    }
+    bounding_boxes = {"boxes": bbox, "classes": classes}
     return {"images": tf.cast(image, tf.float32), "bounding_boxes": bounding_boxes}
 
 
@@ -133,21 +130,12 @@ def augment_data(train_ds, val_ds):
     print("Augmenting data")
     augmenters = keras.Sequential(
         layers=[
-            # keras_cv.layers.RandomFlip(mode="horizontal", bounding_box_format=bbxf),
-            # keras_cv.layers.RandomShear(
-            #     x_factor=0.2, y_factor=0.2, bounding_box_format=bbxf
-            # ),
-            # keras_cv.layers.JitteredResize(
-            #     target_size=(640, 640),
-            #     scale_factor=(0.75, 1.3),
-            #     bounding_box_format=bbxf,
-            # ),
-            keras_cv.layers.Resizing(
-                width=640,
-                height=640,
+            keras_cv.layers.RandomFlip(mode="horizontal", bounding_box_format=bbxf),
+            keras_cv.layers.JitteredResize(
+                target_size=(640, 640),
+                scale_factor=(0.75, 1.3),
                 bounding_box_format=bbxf,
-                pad_to_aspect_ratio=True,
-            )
+            ),
         ]
     )
 
@@ -251,41 +239,16 @@ def train(
         monitor="val_loss", factor=0.1, patience=5, verbose=1, min_lr=1e-7
     )
 
-    class EvaluateCOCOMetricsCallback(keras.callbacks.Callback):
-        def __init__(self, data):
-            super().__init__()
-            self.data = data
-            self.metrics = keras_cv.metrics.BoxCOCOMetrics(
-                bounding_box_format="xyxy",
-                evaluate_freq=1e9,
-            )
-
-            self.best_map = -1.0
-
-        def on_epoch_end(self, epoch, logs):
-            self.metrics.reset_state()
-            for batch in self.data:
-                images, y_true = batch[0], batch[1]
-                y_pred = self.model.predict(images, verbose=0)
-                self.metrics.update_state(y_true, y_pred)
-
-            metrics = self.metrics.result(force=True)
-            logs.update(metrics)
-
-            current_map = metrics["MaP"]
-            if current_map > self.best_map:
-                self.best_map = current_map
-
-            return logs
-
-    # pycoco = keras_cv.callbacks.PyCOCOCallback(val_ds, bounding_box_format=bbxf)
+    pycoco = keras_cv.callbacks.PyCOCOCallback(
+        val_ds, bounding_box_format=bbxf, cache=True
+    )
 
     callbacks = [
+        pycoco,
         callback,
         csvlogger,
         modelcheckpoint,
         reducelronplateau,
-        EvaluateCOCOMetricsCallback(val_ds),
     ]
 
     if weights is not None:
