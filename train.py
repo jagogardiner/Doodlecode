@@ -46,11 +46,11 @@ def parse_annotation(xml_file, class_mapping):
     classes = []
     for obj in root.iter("object"):
         cls = obj.find("name").text
-        if cls == "Check Box":
-            cls = "checkbox"
-        if cls == "Radio Button":
-            cls = "radio"
         cls = cls.lower()
+        if cls == "check box":
+            cls = "checkbox"
+        if cls == "radio button":
+            cls = "radio"
         classes.append(cls)
 
         bbox = obj.find("bndbox")
