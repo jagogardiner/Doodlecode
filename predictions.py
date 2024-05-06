@@ -4,7 +4,7 @@ import tensorflow as tf
 
 import keras_cv
 from keras_cv import visualization
-from .bounding_boxes import render_to_list
+from bounding_boxes import render_to_list
 
 bbxf = "xyxy"
 

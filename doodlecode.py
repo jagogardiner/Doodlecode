@@ -1,7 +1,7 @@
-from .predictions import get_predictions
-from .image_utils import load_image, reshape_image
-from .model_utils import load_model
-from .train import train, save_model
+from predictions import get_predictions
+from image_utils import load_image, reshape_image
+from model_utils import load_model
+from train import train, save_model
 import argparse
 
 
