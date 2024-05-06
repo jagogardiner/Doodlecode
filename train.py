@@ -183,10 +183,8 @@ def train(
 
     train_ds = train_data.map(load_dataset, num_parallel_calls=tf.data.AUTOTUNE)
     train_ds = train_ds.shuffle(batch_size * 4)
-    train_ds = train_ds.take(128)
     train_ds = train_ds.ragged_batch(batch_size, drop_remainder=True)
     val_ds = val_data.map(load_dataset, num_parallel_calls=tf.data.AUTOTUNE)
-    val_ds = val_ds.take(128)
     val_ds = val_ds.ragged_batch(batch_size, drop_remainder=True)
 
     train_ds, val_ds = augment_data(train_ds, val_ds)
