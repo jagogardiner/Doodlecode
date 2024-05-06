@@ -198,7 +198,6 @@ def train(
     train_ds = train_ds.take(128)
     train_ds = train_ds.ragged_batch(batch_size, drop_remainder=True)
     val_ds = val_data.map(load_dataset, num_parallel_calls=tf.data.AUTOTUNE)
-    val_ds = val_ds.shuffle(batch_size * 4)
     val_ds = val_ds.take(128)
     val_ds = val_ds.ragged_batch(batch_size, drop_remainder=True)
 
@@ -252,11 +251,42 @@ def train(
         monitor="val_loss", factor=0.1, patience=5, verbose=1, min_lr=1e-7
     )
 
-    pycoco = keras_cv.callbacks.PyCOCOCallback(
-        val_ds.take(128), bounding_box_format=bbxf
-    )
+    class EvaluateCOCOMetricsCallback(keras.callbacks.Callback):
+        def __init__(self, data):
+            super().__init__()
+            self.data = data
+            self.metrics = keras_cv.metrics.BoxCOCOMetrics(
+                bounding_box_format="xyxy",
+                evaluate_freq=1e9,
+            )
 
-    callbacks = [callback, csvlogger, modelcheckpoint, reducelronplateau, pycoco]
+            self.best_map = -1.0
+
+        def on_epoch_end(self, epoch, logs):
+            self.metrics.reset_state()
+            for batch in self.data:
+                images, y_true = batch[0], batch[1]
+                y_pred = self.model.predict(images, verbose=0)
+                self.metrics.update_state(y_true, y_pred)
+
+            metrics = self.metrics.result(force=True)
+            logs.update(metrics)
+
+            current_map = metrics["MaP"]
+            if current_map > self.best_map:
+                self.best_map = current_map
+
+            return logs
+
+    # pycoco = keras_cv.callbacks.PyCOCOCallback(val_ds, bounding_box_format=bbxf)
+
+    callbacks = [
+        callback,
+        csvlogger,
+        modelcheckpoint,
+        reducelronplateau,
+        EvaluateCOCOMetricsCallback(val_ds),
+    ]
 
     if weights is not None:
         print("Loading weights: " + weights)
@@ -269,7 +299,8 @@ def train(
         callbacks=[callbacks],
         validation_data=val_ds,
     )
-
+    results = model.evaluate(val_ds)
+    print("Results: ", results)
     return model, dt
 
 
