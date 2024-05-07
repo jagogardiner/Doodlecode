@@ -9,7 +9,7 @@ from tqdm.auto import tqdm
 import xml.etree.ElementTree as ET
 
 # globals
-gl_labels = "datasets/main/train"
+gl_labels = "datasets/voc-xml"
 bbxf = "xyxy"
 
 
