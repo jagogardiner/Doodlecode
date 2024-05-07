@@ -241,12 +241,17 @@ def train(
         val_ds, bounding_box_format=bbxf, cache=True
     )
 
+    tensorboard = keras.callbacks.TensorBoard(
+        log_dir="logs/sketch2code_" + dt, histogram_freq=1
+    )
+
     callbacks = [
         pycoco,
         callback,
         csvlogger,
         modelcheckpoint,
         reducelronplateau,
+        tensorboard,
     ]
 
     if weights is not None:

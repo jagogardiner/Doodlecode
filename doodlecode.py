@@ -2,6 +2,7 @@ from predictions import get_predictions
 from image_utils import load_image, reshape_image
 from model_utils import load_model
 from train import train, save_model
+from yoloultralytics import train_ultralytics, predict_ultralytics
 import argparse
 
 
@@ -46,27 +47,32 @@ class DoodleCode:
     def predict(
         self,
         image_path,
-        confidence=0.55,
-        iou=0.3,
+        confidence=0.5,
+        iou=0.7,
         render=True,
         output=True,
         rescale=False,
+        ultralytics=False,
     ):
-        model = load_model(model_loc=self.model)
-        image, dimens = load_image(image_path)
-        pred, bboxes, labels, labels_encoded = get_predictions(
-            image,
-            model,
-            confidence,
-            iou,
-            self.class_mapping,
-            render_img=render,
-            rescale_boxes=rescale,
-        )
-        if output is True:
-            image = reshape_image(pred, dimens, output=True)
-
-        return image, bboxes, labels, labels_encoded, dimens
+        if not ultralytics:
+            model = load_model(model_loc=self.model)
+            image, dimens = load_image(image_path)
+            pred, bboxes, labels, labels_encoded = get_predictions(
+                image,
+                model,
+                confidence,
+                iou,
+                self.class_mapping,
+                render_img=render,
+                rescale_boxes=rescale,
+            )
+            if output is True:
+                image = reshape_image(pred, dimens, output=True)
+            
+            return image, bboxes, labels, labels_encoded, dimens
+        else:
+            image = image_path
+            predict_ultralytics(image, conf=confidence, iou=iou)
 
     def train_model(
         self,
@@ -78,18 +84,28 @@ class DoodleCode:
         batch_size=4,
         path=None,
         weights=None,
+        ultralytics=False,
     ):
-        model, dt = train(
-            gl_class_mapping,
-            backbone=backbone,
-            lr=lr,
-            num_epochs=epochs,
-            split=split,
-            patience=patience,
-            batch_size=batch_size,
-            weights=weights,
-        )
-        save_model(model=model, path=path, time=dt)
+        if not ultralytics:
+            model, dt = train(
+                gl_class_mapping,
+                backbone=backbone,
+                lr=lr,
+                num_epochs=epochs,
+                split=split,
+                patience=patience,
+                batch_size=batch_size,
+                weights=weights,
+            )
+            save_model(model=model, path=path, time=dt)
+        else:
+            train_ultralytics(
+                dataset="/home/nysa/doodlecode/datasets/yolo-v8/data.yaml",
+                model="yolov8n.pt",
+                epochs=epochs,
+                imgsz=640,
+                save_dir="histories/ultralytics",
+            )
 
     def command_line(self):
         parser = argparse.ArgumentParser(description="Sketch2Code")
@@ -142,6 +158,13 @@ class DoodleCode:
             default=None,
             type=str,
         )
+        train_parser.add_argument(
+            "--ultralytics",
+            help="Use Ultralytics for training. Default is False.",
+            required=False,
+            default=False,
+            type=bool,
+        )
 
         # Subparser for the 'visualize' subcommand
         visualize_parser = subparsers.add_parser(
@@ -164,7 +187,13 @@ class DoodleCode:
             default=0.3,
             type=float,
         )
-
+        visualize_parser.add_argument(
+            "--ultralytics",
+            help="Use Ultralytics for predictions. Default is False.",
+            required=False,
+            default=False,
+            type=bool,
+        )
         args = parser.parse_args()
 
         if args.subcommand == "train":
@@ -177,9 +206,10 @@ class DoodleCode:
                 batch_size=args.batch_size,
                 path=args.path,
                 weights=args.weights,
+                ultralytics=args.ultralytics,
             )
         elif args.subcommand == "visualize":
-            self.predict(args.image, args.confidence, args.iou)
+            self.predict(args.image, args.confidence, args.iou, ultralytics=args.ultralytics)
         else:
             print("Invalid subcommand. Please specify either 'train' or 'visualize'.")
 
