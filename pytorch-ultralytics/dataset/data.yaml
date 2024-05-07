@@ -1,0 +1,12 @@
+train: ../train/images
+val: ../test/images
+
+nc: 14
+names: ['Button', 'Carousel', 'Check Box', 'Heading', 'Image', 'Label', 'Link', 'Pagination', 'Paragraph', 'Radio Button', 'Select', 'Table', 'Textarea', 'Textbox']
+
+roboflow:
+  workspace: practice-ehygs
+  project: sketch2code-fgwf3
+  version: 1
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/practice-ehygs/sketch2code-fgwf3/dataset/1
