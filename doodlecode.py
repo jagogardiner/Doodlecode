@@ -69,10 +69,16 @@ class DoodleCode:
             if output is True:
                 image = reshape_image(pred, dimens, output=True)
 
+            print(bboxes, labels, labels_encoded)
             return image, bboxes, labels, labels_encoded, dimens
         else:
             image = image_path
-            predict_ultralytics(image, conf=confidence, iou=iou)
+            boxes, classes, encoded = predict_ultralytics(
+                gl_class_mapping, image, conf=confidence, iou=iou
+            )
+            image, dimens = load_image(image_path)
+            print(boxes, encoded, classes)
+            return image, boxes, encoded, classes, dimens
 
     def train_model(
         self,
