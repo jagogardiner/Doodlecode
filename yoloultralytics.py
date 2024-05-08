@@ -25,14 +25,17 @@ def train_ultralytics(
         save_dir=save_dir,
     )
 
-def predict_ultralytics(img, model_path="/home/nysa/doodlecode/runs/detect/train8/weights/best.pt", conf=0.5, iou=0.7):
+
+def predict_ultralytics(
+    img, model_path="runs/detect/train8/weights/best.pt", conf=0.5, iou=0.7
+):
     model = YOLO(model_path)
     results = model.predict(img,
                             save=True,
                             conf=conf,
                             iou=iou)
     for r in results:
-        print(r)
-        print(r.boxes)
-        print(r.names)
+        for b in r.boxes:
+            x1, y1, x2, y2 = b.xyxy[0]
+            print(f"Box: {x1}, {y1}, {x2}, {y2}")
     return results

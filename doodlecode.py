@@ -68,7 +68,7 @@ class DoodleCode:
             )
             if output is True:
                 image = reshape_image(pred, dimens, output=True)
-            
+
             return image, bboxes, labels, labels_encoded, dimens
         else:
             image = image_path
@@ -100,7 +100,7 @@ class DoodleCode:
             save_model(model=model, path=path, time=dt)
         else:
             train_ultralytics(
-                dataset="/home/nysa/doodlecode/datasets/yolo-v8/data.yaml",
+                dataset="datasets/yolo-v8/data.yaml",
                 model="yolov8n.pt",
                 epochs=epochs,
                 imgsz=640,
