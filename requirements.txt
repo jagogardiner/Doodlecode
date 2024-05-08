@@ -6,3 +6,4 @@ matplotlib
 tqdm
 pycocotools
 opencv-python
+ultralytics
