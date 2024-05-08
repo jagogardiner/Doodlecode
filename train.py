@@ -9,7 +9,7 @@ from tqdm.auto import tqdm
 import xml.etree.ElementTree as ET
 
 # globals
-gl_labels = "datasets/main/train"
+gl_labels = "datasets/voc-xml"
 bbxf = "xyxy"
 
 
@@ -241,12 +241,17 @@ def train(
         val_ds, bounding_box_format=bbxf, cache=True
     )
 
+    tensorboard = keras.callbacks.TensorBoard(
+        log_dir="logs/sketch2code_" + dt, histogram_freq=1
+    )
+
     callbacks = [
         pycoco,
         callback,
         csvlogger,
         modelcheckpoint,
         reducelronplateau,
+        tensorboard,
     ]
 
     if weights is not None:
